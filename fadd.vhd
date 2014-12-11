@@ -112,7 +112,7 @@ begin  -- blackbox
       end if;
     end process;
 
-  temp <= "00" & big(30 downto 23);
+  temp <= "00" & bigtemp(30 downto 23);
 
   ea <= temp + 1 when bigtemp(31) = smalltemp(31) and plus(26) = '1' else
         temp when bigtemp(31) = smalltemp(31) else
