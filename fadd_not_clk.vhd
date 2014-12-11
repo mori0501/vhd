@@ -6,7 +6,6 @@ use ieee.STD_LOGIC_UNSIGNED.all;
 
 entity fadd is
   port (
-    clk : in  std_logic;
     a   : in  std_logic_vector(31 downto 0);
     b   : in  std_logic_vector(31 downto 0);
     o : out std_logic_vector(31 downto 0));
@@ -33,15 +32,6 @@ architecture blackbox of fadd is
   signal temp : std_logic_vector(9 downto 0);
   signal ea : std_logic_vector(9 downto 0);
   signal md : std_logic_vector(26 downto 0);
-
-  signal atemp : std_logic_vector(31 downto 0);
-  signal btemp : std_logic_vector(31 downto 0);
-  signal naninftemp : std_logic_vector(31 downto 0);            -- nan,infとなるとき
-  signal hiseikitemp : std_logic_vector(31 downto 0);  -- 非正規化となるとき
-  signal bigtemp : std_logic_vector(31 downto 0);  -- aとbの大きいほう
-  signal smalltemp : std_logic_vector(31 downto 0);  -- aとbの小さい方
-  signal plustemp : std_logic_vector(26 downto 0);
-  signal minustemp : std_logic_vector(26 downto 0);
 
 begin  -- blackbox
   infa <= '1' when a(30 downto 23) = x"ff" and or_reduce(a(22 downto 0)) = '0' else '0';
@@ -95,27 +85,12 @@ begin  -- blackbox
         "000000000000000000000000" & mb(26 downto 24) when big(30 downto 23) - small(30 downto 23) = 24 else
         "0000000000000000000000000" & mb(26 downto 25) when big(30 downto 23) - small(30 downto 23) = 25 else
         "000" & x"000000";
-  plustemp <= ma + mc;
-  minustemp <= ma - mc;
-
-  fadd_pipe : process(clk)
-    begin
-      if rising_edge(clk) then
-        atemp <= a;
-        btemp <= b;
-        plus <= plustemp;
-        minus <= minustemp;
-        naninftemp <= naninf;
-        hiseikitemp <= hiseiki;
-        bigtemp <= big;
-        smalltemp <= small;
-      end if;
-    end process;
-
+  plus <= ma + mc;
+  minus <= ma - mc;
   temp <= "00" & big(30 downto 23);
 
-  ea <= temp + 1 when bigtemp(31) = smalltemp(31) and plus(26) = '1' else
-        temp when bigtemp(31) = smalltemp(31) else
+  ea <= temp + 1 when big(31) = small(31) and plus(26) = '1' else
+        temp when big(31) = small(31) else
         temp when minus(25) = '1' else
         temp-1 when minus(24) = '1' else
         temp-2 when minus(23) = '1' else
@@ -143,8 +118,8 @@ begin  -- blackbox
         temp-24 when minus(1) = '1' else
         temp-25 when minus(0) = '1' else
         "0000000000";
-  md <= "0" & plus(26 downto 1) when bigtemp(31) = smalltemp(31) and plus(26) = '1' else
-        plus when bigtemp(31) = smalltemp(31) else
+  md <= "0" & plus(26 downto 1) when big(31) = small(31) and plus(26) = '1' else
+        plus when big(31) = small(31) else
         minus when  minus(25) = '1' else
         minus(25 downto 0) & "0" when minus(24)='1' else
         minus(24 downto 0) & "00" when minus(23)='1' else
@@ -173,10 +148,10 @@ begin  -- blackbox
         minus(1 downto 0) & "0000000000000000000000000" when minus(0)='1' else
         "000000000000000000000000000";
 
-  o <=  naninftemp when atemp(30 downto 23) = x"ff" or btemp(30 downto 23) = x"ff" else
-        hiseikitemp when atemp(30 downto 23) = x"00" or btemp(30 downto 23) = x"00" else
-        x"00000000" when (bigtemp(31) /= smalltemp(31) and minus = "000" & x"000000") or ea = "0000000000" else
-        bigtemp(31) & "1111111100000000000000000000000" when ea >= x"ff" else
-        bigtemp(31) & ea(7 downto 0) & md(24 downto 2);
+  o <=  naninf when a(30 downto 23) = x"ff" or b(30 downto 23) = x"ff" else
+        hiseiki when a(30 downto 23) = x"00" or b(30 downto 23) = x"00" else
+        x"00000000" when (big(31) /= small(31) and minus = "000" & x"000000") or ea = "0000000000" else
+        big(31) & "1111111100000000000000000000000" when ea >= x"ff" else
+        big(31) & ea(7 downto 0) & md(24 downto 2);
 
 end blackbox;
